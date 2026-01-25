@@ -11,6 +11,7 @@
   <div>
     <img alt="GitHub Release" src="https://img.shields.io/github/v/release/15dd/hikari_novel_flutter?style=for-the-badge&color=%23408A23">
     <img alt="License" src="https://img.shields.io/badge/License-MIT-Green?style=for-the-badge&color=rgb(164%2C25%2C49)">
+    <a href="https://t.me/+CUSABNkX5U83NGNl"><img alt="Static Badge" src="https://img.shields.io/badge/Telegram-Join%20Group-blue?style=for-the-badge&logo=telegram"></a>
   </div>
   
 </div>
