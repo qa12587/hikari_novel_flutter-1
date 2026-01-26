@@ -23,7 +23,7 @@ class Request {
   };
 
   static final _dioCookieJar = CookieJar();
-  static final Dio _dio = Dio(
+  static final Dio dio = Dio(
     BaseOptions(
       headers: userAgent,
       responseType: ResponseType.bytes, //使用bytes获取原始数据，方便解码
@@ -42,9 +42,9 @@ class Request {
   static String? get _cookie => LocalStorageService.instance.getCookie();
 
   static Map<String, String> _getMewxWenku8PostForm(String request) => {
-    "appver": "1.25-chibi-chapter-144c9c5",
+    "appver": "1.24-pico-mochi",
     "timetoken": DateTime.now().millisecondsSinceEpoch.toString(),
-    "request": base64.encode(utf8.encode(request)),
+    "request": base64.encode(request.codeUnits),
   };
 
   ///获取通用数据（如其他网站的数据，即不用wenku8的cookie）
@@ -74,7 +74,7 @@ class Request {
 
       Log.d("$url ${charsetsType.name}");
 
-      final response = await _dio.get(url, options: _cookie != null ? Options(headers: {..._dio.options.headers, "Cookie": _cookie}) : null);
+      final response = await dio.get(url, options: _cookie != null ? Options(headers: {...dio.options.headers, "Cookie": _cookie}) : null);
 
       //检查是否有重定向
       final html = await _checkRedirects(response);
@@ -101,9 +101,9 @@ class Request {
       if (location != null) {
         final cookies = await _dioCookieJar.loadForRequest(Uri.parse(location));
         final cookieHeader = cookies.map((cookie) => '${cookie.name}=${cookie.value}').join('; ');
-        final redirectedResponse = await _dio.get(
+        final redirectedResponse = await dio.get(
           "${Api.wenku8Node.node}/$location",
-          options: Options(headers: {..._dio.options.headers, 'Cookie': cookieHeader}),
+          options: Options(headers: {...dio.options.headers, 'Cookie': cookieHeader}),
         );
         return redirectedResponse.data;
       }
@@ -118,12 +118,12 @@ class Request {
   /// - [charsetsType] response解码的方式
   static Future<Resource> postForm(String url, {required Object? data, required CharsetsType charsetsType}) async {
     try {
-      final response = await _dio.post(
+      final response = await dio.post(
         url,
         data: data,
         options: _cookie != null
             ? Options(
-                headers: {..._dio.options.headers, "Cookie": _cookie},
+                headers: {...dio.options.headers, "Cookie": _cookie},
                 contentType: Headers.formUrlEncodedContentType, //设置为application/x-www-form-urlencoded
               )
             : null,
