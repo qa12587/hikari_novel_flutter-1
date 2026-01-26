@@ -49,6 +49,8 @@ class DBService extends GetxService {
 
   Future<void> deleteReadHistoryByCid(String cid) => _db.deleteReadHistoryByCid(cid);
 
+  Future<void> upsertReadHistoryDirectly(ReadHistoryEntityData data) => _db.upsertReadHistoryDirectly(data);
+
   Future<void> deleteAllReadHistory() => _db.deleteAllReadHistory();
 
   Future<void> upsertNovelDetail(NovelDetailEntityData data) => _db.upsertNovelDetail(data);

@@ -62,6 +62,8 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> deleteReadHistoryByCid(String cid) => (delete(readHistoryEntity)..where((i) => i.cid.equals(cid))).go();
 
+  Future<void> upsertReadHistoryDirectly(ReadHistoryEntityData data) => into(readHistoryEntity).insertOnConflictUpdate(data);
+
   Future<void> deleteAllReadHistory() => delete(readHistoryEntity).go();
 
   Future<void> upsertNovelDetail(NovelDetailEntityData data) => into(novelDetailEntity).insertOnConflictUpdate(data);

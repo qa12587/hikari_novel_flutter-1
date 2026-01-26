@@ -388,5 +388,50 @@ class NovelDetailController extends GetxController {
     }
   }
 
-  void deleteAllReadHistory() async => await DBService.instance.deleteAllReadHistory();
+  void deleteAllReadHistory() async => DBService.instance.deleteAllReadHistory();
+
+  void deleteReadHistoryByCid(String cid) async => DBService.instance.deleteReadHistoryByCid(cid);
+
+  void setReadHistory100PercentByCid(String cid) async {
+    final readerMode = LocalStorageService.instance.getReaderDirection() == ReaderDirection.upToDown
+        ? kScrollReadMode
+        : kPageReadMode; // 1为滚动模式，2为翻页模式，翻页模式的左右方向不影响阅读记录的使用
+    bool isDualPage = switch (LocalStorageService.instance.getReaderDualPageMode()) {
+      DualPageMode.auto => Get.context!.isLargeScreen(),
+      DualPageMode.enabled => true,
+      DualPageMode.disabled => false,
+    };
+
+    final data = await DBService.instance.getReadHistoryByCid(cid);
+
+    if (data == null) {
+      DBService.instance.upsertReadHistoryDirectly(
+        ReadHistoryEntityData(
+          cid: cid,
+          aid: aid,
+          volume: 0,
+          chapter: 0, //TODO 去掉volume和chapter记录
+          readerMode: readerMode,
+          isDualPage: isDualPage,
+          location: 0,
+          progress: 100,
+          isLatest: false,
+        ),
+      );
+    } else {
+      DBService.instance.upsertReadHistoryDirectly(
+        ReadHistoryEntityData(
+          cid: data.cid,
+          aid: data.aid,
+          volume: data.volume,
+          chapter: data.chapter,
+          readerMode: data.readerMode,
+          isDualPage: data.isDualPage,
+          location: data.location,
+          progress: 100,
+          isLatest: data.isLatest,
+        ),
+      );
+    }
+  }
 }

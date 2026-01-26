@@ -94,7 +94,7 @@ class _NovelDetailPageState extends State<NovelDetailPage> {
                   }),
                 ),
                 floatingActionButton: _buildContinueFab(),
-                bottomNavigationBar: _buildBottomBar(),
+                bottomNavigationBar: _buildBottomBar(context),
               ),
             ),
     );
@@ -182,7 +182,7 @@ class _NovelDetailPageState extends State<NovelDetailPage> {
       title: Obx(() => AnimatedOpacity(opacity: _opacity.value, duration: const Duration(milliseconds: 200), child: Text(controller.novelDetail.value!.title))),
       titleSpacing: 0,
       actions: [
-        IconButton(onPressed: controller.enterSelectionMode, icon: Icon(Icons.file_download), tooltip: "cache".tr),
+        IconButton(onPressed: controller.enterSelectionMode, icon: Icon(Icons.download_outlined), tooltip: "cache".tr),
         PopupMenuButton<_MenuItem>(
           icon: const Icon(Icons.more_vert),
           onSelected: (value) {
@@ -366,7 +366,7 @@ class _NovelDetailPageState extends State<NovelDetailPage> {
                 padding: const EdgeInsets.only(left: 6),
                 child: StreamBuilder(
                   stream: DBService.instance.getWatchableReadHistoryByVolume(controller.aid, volumeIndex),
-                  builder: (_, result) => Text(
+                  builder: (context, result) => Text(
                     controller.getReadHistoryProgressByVolume(result.data ?? [], volume.chapters.length),
                     style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.primary),
                   ),
@@ -378,50 +378,64 @@ class _NovelDetailPageState extends State<NovelDetailPage> {
 
                 controller.checkIsChapterCached(chapter.cid); //检测当前章节是否已缓存
 
-                return Obx(() {
-                  return ListTile(
-                    leading: controller.isSelectionMode.value
-                        ? Checkbox(value: chapter.isSelected.value, onChanged: (_) => controller.toggleChapterSelection(volumeIndex, chapterIndex))
-                        : null,
-                    title: Text(chapter.title, style: const TextStyle(fontSize: 13)),
-                    subtitle: StreamBuilder(
-                      stream: DBService.instance.getWatchableReadHistoryByCid(chapter.cid),
-                      builder: (_, snapshot) => Obx(() {
-                        final cacheString = controller.cachedChapter.contains(chapter.cid) ? " • ${"cached".tr}" : "";
-                        return Text(
-                          controller.getReadHistoryProgressByCid(snapshot.data) + cacheString,
-                          style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.primary),
-                          overflow: TextOverflow.clip,
-                        );
-                      }),
-                    ),
-                    contentPadding: const EdgeInsets.only(left: 50.0, right: 24.0),
-                    onTap: () async {
-                      if (controller.isSelectionMode.value) {
-                        controller.toggleChapterSelection(volumeIndex, chapterIndex);
-                        return;
+                //使用FutureBuilder处理异步的阅读历史数据
+                return StreamBuilder(
+                  stream: DBService.instance.getWatchableReadHistoryByCid(chapter.cid),
+                  //设置初始数据，避免首次构建时出现空值
+                  initialData: null,
+                  builder: (context, snapshot) {
+                    return Obx(() {
+                      Color titleColor = Theme.of(context).colorScheme.onSurface; // 默认颜色
+                      Color subtitleColor = Theme.of(context).colorScheme.primary;
+                      if (snapshot.hasData) {
+                        final readHistory = snapshot.data;
+                        if (readHistory != null && readHistory.progress == 100) {
+                          titleColor = Theme.of(context).disabledColor; // 已读完，字体变灰
+                          subtitleColor = Theme.of(context).disabledColor;
+                        }
                       }
 
-                      //获取上次阅读的位置
-                      final history = await DBService.instance.getReadHistoryByCid(chapter.cid);
-                      var location = 0; //没有记录或者有不适用的记录则从头开始阅读（即阅读位置为0）
-                      final currDirection = LocalStorageService.instance.getReaderDirection();
-                      if ((history?.readerMode == kScrollReadMode && currDirection == ReaderDirection.upToDown) ||
-                          (history?.readerMode == kPageReadMode &&
-                              (currDirection == ReaderDirection.leftToRight || currDirection == ReaderDirection.rightToLeft))) {
-                        location = history?.location ?? 0;
-                      }
-                      Get.toNamed(
-                        RoutePath.reader,
-                        parameters: {"aid": controller.aid, "volume": "$volumeIndex", "chapter": "$chapterIndex", "location": "$location"},
+                      final cacheString = controller.cachedChapter.contains(chapter.cid) ? " • ${"cached".tr}" : "";
+
+                      return ListTile(
+                        leading: controller.isSelectionMode.value
+                            ? Checkbox(value: chapter.isSelected.value, onChanged: (_) => controller.toggleChapterSelection(volumeIndex, chapterIndex))
+                            : null,
+                        title: Text(chapter.title, style: TextStyle(fontSize: 13, color: titleColor)),
+                        subtitle: Text(
+                          controller.getReadHistoryProgressByCid(snapshot.data) + cacheString,
+                          style: TextStyle(fontSize: 13, color: subtitleColor),
+                          overflow: TextOverflow.clip,
+                        ),
+                        contentPadding: const EdgeInsets.only(left: 50.0, right: 24.0),
+                        onTap: () async {
+                          if (controller.isSelectionMode.value) {
+                            controller.toggleChapterSelection(volumeIndex, chapterIndex);
+                            return;
+                          }
+
+                          //获取上次阅读的位置
+                          final history = await DBService.instance.getReadHistoryByCid(chapter.cid);
+                          var location = 0; //没有记录或者有不适用的记录则从头开始阅读（即阅读位置为0）
+                          final currDirection = LocalStorageService.instance.getReaderDirection();
+                          if ((history?.readerMode == kScrollReadMode && currDirection == ReaderDirection.upToDown) ||
+                              (history?.readerMode == kPageReadMode &&
+                                  (currDirection == ReaderDirection.leftToRight || currDirection == ReaderDirection.rightToLeft))) {
+                            location = history?.location ?? 0;
+                          }
+                          Get.toNamed(
+                            RoutePath.reader,
+                            parameters: {"aid": controller.aid, "volume": "$volumeIndex", "chapter": "$chapterIndex", "location": "$location"},
+                          );
+                        },
+                        onLongPress: () {
+                          if (!controller.isSelectionMode.value) controller.enterSelectionMode();
+                          controller.toggleChapterSelection(volumeIndex, chapterIndex);
+                        },
                       );
-                    },
-                    onLongPress: () {
-                      if (!controller.isSelectionMode.value) controller.enterSelectionMode();
-                      controller.toggleChapterSelection(volumeIndex, chapterIndex);
-                    },
-                  );
-                });
+                    });
+                  },
+                );
               }).toList(),
             ),
           );
@@ -446,7 +460,7 @@ class _NovelDetailPageState extends State<NovelDetailPage> {
                 if (history == null) return;
                 Get.toNamed(
                   RoutePath.reader,
-                  parameters: {"aid": controller.aid, "volume": "${history.volume}", "chapter": "${history.chapter}", "location": "${history.location}"},
+                  parameters: {"aid": controller.aid, "volume": "${history.volume}", "chapter": "${history.chapter}", "location": "${history.location}"}, //TODO 去除volume和chapter
                 );
               },
               label: Row(children: [const Icon(Icons.play_arrow), const SizedBox(width: 10), Text("continue_reading".tr)]),
@@ -457,23 +471,47 @@ class _NovelDetailPageState extends State<NovelDetailPage> {
     );
   }
 
-  Widget _buildBottomBar() {
+  Widget _buildBottomBar(BuildContext context) {
+    final onSurfaceColor = Theme.of(context).colorScheme.onSurface;
     return Obx(
       () => Offstage(
         offstage: !controller.isSelectionMode.value,
         child: BottomAppBar(
+          height: 72,
           color: Theme.of(context).colorScheme.secondaryContainer,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: FilledButton.icon(
-              onPressed: () async {
-                await controller.startCache();
-                controller.exitSelectionMode();
-                AppSubRouter.toCacheQueue();
-              },
-              icon: const Icon(Icons.download),
-              label: Text("cache".tr),
-            ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Expanded(
+                child: TextButton.icon(
+                  onPressed: () async {
+                    await controller.startCache();
+                    controller.exitSelectionMode();
+                    AppSubRouter.toCacheQueue();
+                  },
+                  icon: Icon(Icons.download_outlined, color: onSurfaceColor),
+                  label: Text("cache".tr, style: TextStyle(color: onSurfaceColor)),
+                ),
+              ),
+              Expanded(
+                child: TextButton.icon(
+                  onPressed: () {
+                    /*TODO*/
+                  },
+                  icon: Icon(Icons.done_all, color: onSurfaceColor),
+                  label: Text("标为已读", style: TextStyle(color: onSurfaceColor)),
+                ),
+              ),
+              Expanded(
+                child: TextButton.icon(
+                  onPressed: () {
+                    /*TODO*/
+                  },
+                  icon: Icon(Icons.remove_done, color: onSurfaceColor),
+                  label: Text("标为未读", style: TextStyle(color: onSurfaceColor)),
+                ),
+              ),
+            ],
           ),
         ),
       ),
