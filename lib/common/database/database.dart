@@ -16,6 +16,7 @@ class AppDatabase extends _$AppDatabase {
   MigrationStrategy get migration => MigrationStrategy(
     onUpgrade: (m, from, to) async {
       if (from == 1 && to == 2) {
+        //TODO 更多的逻辑
         //创建新表
         await customStatement('''
           CREATE TABLE read_history_entity_new (
