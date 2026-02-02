@@ -1,26 +1,69 @@
-name: Auto Build Hikari (org.mewx.wenku8 - 仓库适配版)
+name: Auto Build Hikari (org.mewx.wenku8 - 仓库专属版)
 on:
   push:
     branches: [ main ]  # 推代码自动打包
-  workflow_dispatch:    # 手动触发（仓库Actions页面可运行）
+  workflow_dispatch:    # 手动触发
   schedule:
-    - cron: '0 0 * * *' # 每天UTC0点（国内早8点）定时打包
+    - cron: '0 0 * * *' # 每天自动打包
 
 jobs:
   build-android:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
-      contents: write  # 解决仓库访问权限问题
+      contents: write  # 解决仓库访问权限
     steps:
-      - name: 拉取仓库代码（适配LFS大文件）
+      - name: 拉取仓库代码
         uses: actions/checkout@v4
         with:
           repository: qa12587/hikari_novel_flutter-1
           fetch-depth: 1
-          lfs: true  # 兼容仓库可能的图标、资源等大文件
+          lfs: true  # 兼容仓库大文件
 
-      - name: 配置 Flutter 3.38.5（匹配仓库环境）
+      - name: 配置 Flutter 3.38.5
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.
+          flutter-version: '3.38.5'
+          channel: stable
+          cache: true
+
+      - name: 安装依赖
+        run: |
+          flutter clean
+          flutter pub get
+          cd android && chmod +x gradlew && ./gradlew clean && cd ..
+
+      - name: 强制修改包名为 org.mewx.wenku8
+        run: |
+          # 自动定位仓库的 build.gradle 文件
+          GRADLE_FILE=$(find . -path "*/android/app/build.gradle" | head -1)
+          if [ -z "$GRADLE_FILE" ]; then
+            echo "❌ 未找到 Android 构建文件，终止打包"
+            exit 1
+          fi
+          sed -i 's/applicationId "[^"]*"/applicationId "org.mewx.wenku8"/g' "$GRADLE_FILE"
+          echo "✅ 包名已修改为：$(grep applicationId "$GRADLE_FILE")"
+
+      - name: 配置自定义签名
+        run: |
+          mkdir -p android/app
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/release-key.jks
+          cat > android/key.properties << EOF
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=release-key.jks
+          storeType=jks
+          EOF
+
+      - name: 打包 Android APK
+        run: flutter build apk --release --target-platform android-arm64 --no-tree-shake-icons
+        env:
+          LC_ALL: en_US.UTF-8  # 避免中文乱码
+
+      - name: 上传已签名 APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Hikari-APK-org.mewx.wenku8-${{ github.run_number }}
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 90
