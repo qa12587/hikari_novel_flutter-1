@@ -1,0 +1,87 @@
+name: Sync and Build APK
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: gautamkrishnar/keepalive-workflow@v2
+
+  build:
+    runs-on: ubuntu-latest
+    needs: keepalive
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sync upstream
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote add upstream https://github.com/15dd/hikari_novel_flutter.git || true
+          git fetch upstream
+          git merge upstream/main --no-edit || true
+          git push origin main || true
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '21'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.9'
+          channel: 'stable'
+
+      - name: Get dependencies
+        run: flutter clean && flutter pub get
+
+      - name: 自动修改包名为 org.mewx.wenku8（核心）
+        run: |
+          sed -i 's/applicationId ".*"/applicationId "org.mewx.wenku8"/' android/app/build.gradle
+          echo "包名修改完成，当前包名："
+          grep applicationId android/app/build.gradle
+
+      - name: Setup signing（适配你的签名密钥）
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/release-key.jks
+          cat > android/key.properties << EOF
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=release-key.jks
+          EOF
+
+      - name: Build APK（arm64 适配手机）
+        run: flutter build apk --release --target-platform android-arm64
+
+      - name: Get version
+        id: ver
+        run: echo "version=$(grep 'version:' pubspec.yaml | cut -d' ' -f2 | cut -d'+' -f1)" >> $GITHUB_OUTPUT
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.ver.outputs.version }}-build${{ github.run_number }}
+          name: Hikari Novel v${{ steps.ver.outputs.version }} (org.mewx.wenku8)
+          body: |
+            🚀 自动同步上游+自定义包名+完整签名
+            - 包名：org.mewx.wenku8
+            - 架构：android-arm64
+            - 签名：自定义密钥签名（可直接安装）
+          files: build/app/outputs/flutter-apk/app-release.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
