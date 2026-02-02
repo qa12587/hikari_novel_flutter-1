@@ -1,10 +1,10 @@
 name: Auto Build APK (org.mewx.wenku8 强制生效)
 on:
   push:
-    branches: [ main ]  # 改代码推main分支，立刻自动打包
+    branches: [ main ]  # 改代码推main，立刻自动打包
   workflow_dispatch:    # 手动触发兜底
   schedule:
-    - cron: '0 0 * * *' # 每天自动打包，双重保障
+    - cron: '0 0 * * *' # 每天自动打包兜底
 
 jobs:
   build:
@@ -25,14 +25,20 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # ✅ 核心修复：强制改build.gradle，包名100%是org.mewx.wenku8
-      - name: Force Set Package Name to org.mewx.wenku8
+      # ✅ 核心修复：先定位gradle文件+兼容目录，再改包名，解决找不到文件问题
+      - name: Force Set Package Name to org.mewx.wenku8 (修复路径报错)
         run: |
-          # 精准定位applicationId行，强制替换成org.mewx.wenku8，不管原来是什么
-          sed -i 's/applicationId "[^"]*"/applicationId "org.mewx.wenku8"/g' android/app/build.gradle
-          # 打印验证，打包日志能直接看到包名是否改对
-          echo "✅ 包名已强制修改为："
-          grep -n "applicationId" android/app/build.gradle
+          # 先定位build.gradle位置，兼容不同Flutter项目目录，避免找不到文件
+          GRADLE_FILE=$(find . -path "*/android/app/build.gradle" | head -1)
+          if [ -z "$GRADLE_FILE" ]; then
+            echo "❌ 未找到android/app/build.gradle文件"
+            exit 1
+          fi
+          # 强制替换包名为org.mewx.wenku8
+          sed -i 's/applicationId "[^"]*"/applicationId "org.mewx.wenku8"/g' "$GRADLE_FILE"
+          # 打印验证，确认包名修改成功
+          echo "✅ 包名已强制修改为 org.mewx.wenku8，文件路径：$GRADLE_FILE"
+          grep -n "applicationId" "$GRADLE_FILE"
 
       - name: Build APK
         run: flutter build apk --release --target-platform android-arm64
