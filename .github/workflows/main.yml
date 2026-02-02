@@ -1,1 +1,68 @@
-https://github.com/15dd/wenku8reader.git
+name: Auto Build Hikari (org.mewx.wenku8 - 修复gradlew版)
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - name: 拉取仓库代码
+        uses: actions/checkout@v4
+        with:
+          repository: qa12587/hikari_novel_flutter-1
+          fetch-depth: 1
+          lfs: true
+
+      - name: 配置Flutter 3.38.5
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.5'
+          channel: stable
+          cache: true
+
+      - name: 安装依赖（修复gradlew缺失）
+        run: |
+          flutter clean
+          flutter pub get
+          # 移除gradlew操作，Flutter自动处理
+
+      - name: 强制改包名为org.mewx.wenku8
+        run: |
+          GRADLE_FILE=$(find . -path "*/android/app/build.gradle" | head -1)
+          if [ -z "$GRADLE_FILE" ]; then
+            echo "❌ 未找到Android构建文件"
+            exit 1
+          fi
+          sed -i 's/applicationId "[^"]*"/applicationId "org.mewx.wenku8"/g' "$GRADLE_FILE"
+          echo "✅ 包名已修改：$(grep applicationId "$GRADLE_FILE")"
+
+      - name: 配置自定义签名
+        run: |
+          mkdir -p android/app
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/release-key.jks
+          cat > android/key.properties << EOF
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=release-key.jks
+          storeType=jks
+          EOF
+
+      - name: 打包Android APK
+        run: flutter build apk --release --target-platform android-arm64 --no-tree-shake-icons
+        env:
+          LC_ALL: en_US.UTF-8
+
+      - name: 上传已签名APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Hikari-APK-org.mewx.wenku8-${{ github.run_number }}
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 90
