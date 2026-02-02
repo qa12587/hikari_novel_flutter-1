@@ -1,39 +1,71 @@
-name: Build-APK
+name: Auto Build Hikari (云端改包名版)
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'
 
 jobs:
-  build:
+  build-android:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
+    permissions:
+      contents: write
     steps:
-      - name: Checkout code
+      - name: 拉取仓库代码
         uses: actions/checkout@v4
         with:
+          repository: qa12587/hikari_novel_flutter-1
           fetch-depth: 1
+          lfs: true
 
-      - name: Setup Flutter
+      - name: 配置Flutter 3.38.5
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.38.5'
           channel: stable
           cache: true
 
-      - name: Install dependencies
-        run: flutter pub get
+      - name: 安装依赖
+        run: |
+          flutter clean
+          flutter pub get
 
-      - name: Build APK
-        run: flutter build apk --release --target-platform android-arm64
+      # ✅ 云端自动补全Android模块+改包名
+      - name: 自动补全Android模块并改包名
+        run: |
+          # 检查是否存在Android模块
+          if [ ! -d "android" ]; then
+            echo "⚠️ 仓库缺失Android模块，云端自动生成..."
+            flutter create --platforms android .
+          fi
+          # 定位build.gradle文件
+          GRADLE_FILE=$(find . -path "*/android/app/build.gradle" | head -1)
+          # 强制替换包名为org.mewx.wenku8
+          sed -i 's/applicationId "[^"]*"/applicationId "org.mewx.wenku8"/g' "$GRADLE_FILE"
+          echo "✅ 包名已修改为：$(grep applicationId "$GRADLE_FILE")"
+
+      - name: 配置自定义签名
+        run: |
+          mkdir -p android/app
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/release-key.jks
+          cat > android/key.properties << EOF
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=release-key.jks
+          storeType=jks
+          EOF
+
+      - name: 打包Android APK
+        run: flutter build apk --release --target-platform android-arm64 --no-tree-shake-icons
         env:
-          KEYSTORE_FILE: ${{ secrets.KEYSTORE_FILE }}
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_ALIAS_PASSWORD: ${{ secrets.KEY_ALIAS_PASSWORD }}
+          LC_ALL: en_US.UTF-8
 
-      - name: Upload APK
+      - name: 上传已签名APK
         uses: actions/upload-artifact@v4
         with:
-          name: signed-apk
+          name: Hikari-APK-org.mewx.wenku8-${{ github.run_number }}
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 90
