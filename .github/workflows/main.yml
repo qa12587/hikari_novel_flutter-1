@@ -1,56 +1,67 @@
-name: Auto Build APK (org.mewx.wenku8 强制生效)
+name: Auto Build Hikari (org.mewx.wenku8)
 on:
   push:
-    branches: [ main ]  # 改代码推main，立刻自动打包
+    branches: [ main ]  # 改代码推main分支，自动打包
   workflow_dispatch:    # 手动触发兜底
   schedule:
-    - cron: '0 0 * * *' # 每天自动打包兜底
+    - cron: '0 0 * * *' # 每天UTC0点自动打包（国内早8点）
 
 jobs:
-  build:
+  build-android:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
-      - name: Checkout code
+      - name: Checkout 仓库代码
         uses: actions/checkout@v4
         with:
+          repository: qa12587/hikari_novel_flutter-1  # 锁定你的仓库
           fetch-depth: 1
 
-      - name: Setup Flutter
+      - name: Setup Flutter 3.38.5（匹配仓库环境）
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.38.5'
           channel: stable
           cache: true
 
-      - name: Install dependencies
-        run: flutter pub get
+      - name: 安装依赖（兼容仓库依赖）
+        run: flutter clean && flutter pub get
 
-      # ✅ 核心修复：先定位gradle文件+兼容目录，再改包名，解决找不到文件问题
-      - name: Force Set Package Name to org.mewx.wenku8 (修复路径报错)
+      - name: 强制改包名为 org.mewx.wenku8（适配仓库目录）
         run: |
-          # 先定位build.gradle位置，兼容不同Flutter项目目录，避免找不到文件
+          # 自动定位仓库的 build.gradle 文件（兼容仓库目录结构）
           GRADLE_FILE=$(find . -path "*/android/app/build.gradle" | head -1)
           if [ -z "$GRADLE_FILE" ]; then
-            echo "❌ 未找到android/app/build.gradle文件"
+            echo "❌ 未找到 Android 构建文件，终止打包"
             exit 1
           fi
-          # 强制替换包名为org.mewx.wenku8
+          # 强制替换包名，不管仓库原包名是什么
           sed -i 's/applicationId "[^"]*"/applicationId "org.mewx.wenku8"/g' "$GRADLE_FILE"
-          # 打印验证，确认包名修改成功
-          echo "✅ 包名已强制修改为 org.mewx.wenku8，文件路径：$GRADLE_FILE"
-          grep -n "applicationId" "$GRADLE_FILE"
+          echo "✅ 包名已修改为 org.mewx.wenku8，文件路径：$GRADLE_FILE"
+          grep -n "applicationId" "$GRADLE_FILE"  # 打印验证
 
-      - name: Build APK
-        run: flutter build apk --release --target-platform android-arm64
+      - name: 配置自定义签名（用你的密钥）
+        run: |
+          # 解码签名文件到仓库 Android 目录
+          mkdir -p android/app && echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/release-key.jks
+          # 生成签名配置文件，Flutter 打包自动读取
+          cat > android/key.properties << EOF
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=release-key.jks
+          storeType=jks
+          EOF
+          echo "✅ 签名配置完成"
+
+      - name: 打包 Android 已签名 APK（arm64 架构）
+        run: flutter build apk --release --target-platform android-arm64 --no-tree-shake-icons
         env:
-          KEYSTORE_FILE: ${{ secrets.KEYSTORE_FILE }}
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_ALIAS_PASSWORD: ${{ secrets.KEY_ALIAS_PASSWORD }}
+          LC_ALL: en_US.UTF-8  # 避免中文乱码
 
-      - name: Upload APK
+      - name: 上传已签名 APK（保留90天）
         uses: actions/upload-artifact@v4
         with:
-          name: signed-apk-${{ github.run_number }}
+          name: Hikari-APK-org.mewx.wenku8-${{ github.run_number }}
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 90
