@@ -23,6 +23,8 @@ class HorizontalReadPage extends StatefulWidget {
   final Function(int index, int max) onPageChanged;
   final Function(int index) onViewImage;
   final VoidCallback? onCenterTap;
+  final VoidCallback? onLeftTap;
+  final VoidCallback? onRightTap;
   final VoidCallback? onReachStart;
   final VoidCallback? onReachEnd;
 
@@ -42,6 +44,8 @@ class HorizontalReadPage extends StatefulWidget {
     this.backgroundColor,
     this.backsideColor,
     this.onCenterTap,
+    this.onLeftTap,
+    this.onRightTap,
     this.onReachStart,
     this.onReachEnd,
     required this.onPageChanged,
@@ -190,13 +194,19 @@ class _HorizontalReadPageState extends State<HorizontalReadPage> with WidgetsBin
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTapUp: (details) {
-        final width = MediaQuery.of(context).size.width;
+        final width = context.size?.width ?? MediaQuery.of(context).size.width;
+        final logicalX = widget.reverse ? (width - details.localPosition.dx).clamp(0.0, width) : details.localPosition.dx;
         final left = width * 0.28;
         final right = width * 0.72;
-        final x = details.localPosition.dx;
-        if (x > left && x < right) {
-          widget.onCenterTap?.call();
+        if (logicalX <= left) {
+          widget.onLeftTap?.call();
+          return;
         }
+        if (logicalX >= right) {
+          widget.onRightTap?.call();
+          return;
+        }
+        widget.onCenterTap?.call();
       },
       child: PageView.builder(
         controller: widget.controller,

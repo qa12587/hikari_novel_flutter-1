@@ -271,6 +271,8 @@ class ReaderPage extends StatelessWidget {
       ),
       pageFooter: _useInPageBottomStatusBar() ? _buildInPageStatusBar(context) : null,
       onCenterTap: () => controller.showBar.value = !controller.showBar.value,
+      onLeftTap: controller.prevPage,
+      onRightTap: controller.nextPage,
       onReachStart: controller.prevChapter,
       onReachEnd: controller.nextChapter,
       onPageChanged: (index, max) {
