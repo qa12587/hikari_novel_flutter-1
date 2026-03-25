@@ -457,6 +457,7 @@ class ReaderPage extends StatelessWidget {
   }
 
   Widget _buildBottomStatusBar(BuildContext context) {
+    final spacing = controller.readerSettingsState.value.readerBottomStatusBarHorizontalSpacing.toDouble();
     return Positioned(
       right: 8,
       left: 8,
@@ -465,7 +466,7 @@ class ReaderPage extends StatelessWidget {
         () => Offstage(
           offstage: !(_useOverlayBottomStatusBar() && controller.pageState.value == PageState.success),
           child: Padding(
-            padding: EdgeInsets.fromLTRB(12, 0, 12, MediaQuery.of(context).padding.bottom),
+            padding: EdgeInsets.fromLTRB(spacing, 0, spacing, MediaQuery.of(context).padding.bottom),
             child: _buildStatusBarContent(context),
           ),
         ),
@@ -475,11 +476,12 @@ class ReaderPage extends StatelessWidget {
 
   Widget _buildInPageStatusBar(BuildContext context) {
     final bottomInset = MediaQuery.of(context).padding.bottom;
+    final spacing = controller.readerSettingsState.value.readerBottomStatusBarHorizontalSpacing.toDouble();
     return SizedBox(
       width: double.infinity,
       height: kStatusBarPadding.toDouble() + bottomInset,
       child: Padding(
-        padding: EdgeInsets.fromLTRB(12, 0, 12, bottomInset),
+        padding: EdgeInsets.fromLTRB(spacing, 0, spacing, bottomInset),
         child: _buildStatusBarContent(context),
       ),
     );

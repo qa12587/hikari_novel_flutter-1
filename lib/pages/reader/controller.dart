@@ -452,6 +452,11 @@ class ReaderController extends GetxController {
     LocalStorageService.instance.setReaderParaSpacing(value);
   }
 
+  void changeReaderBottomStatusBarHorizontalSpacing(int value) {
+    readerSettingsState.value = readerSettingsState.value.copyWith(readerBottomStatusBarHorizontalSpacing: value);
+    LocalStorageService.instance.setReaderBottomStatusBarHorizontalSpacing(value);
+  }
+
   void getTextColor() {
     if (Get.context!.isDarkMode) {
       currentTextColor.value = LocalStorageService.instance.getReaderNightTextColor();
@@ -643,6 +648,7 @@ class ReaderSettingsState {
   final Color? readerNightBgColor;
   final int readerParaIndent;
   final int readerParaSpacing;
+  final int readerBottomStatusBarHorizontalSpacing;
 
   ReaderSettingsState({
     required this.direction,
@@ -670,7 +676,8 @@ class ReaderSettingsState {
     required this.readerDayBgColor,
     required this.readerNightBgColor,
     required this.readerParaIndent,
-    required this.readerParaSpacing
+    required this.readerParaSpacing,
+    required this.readerBottomStatusBarHorizontalSpacing,
   });
 
   ReaderSettingsState copyWith({
@@ -699,7 +706,8 @@ class ReaderSettingsState {
     Color? readerDayBgColor,
     Color? readerNightBgColor,
     int? readerParaIndent,
-    int? readerParaSpacing
+    int? readerParaSpacing,
+    int? readerBottomStatusBarHorizontalSpacing
   }) => ReaderSettingsState(
     direction: direction ?? this.direction,
     pageTurningAnimation: pageTurningAnimation ?? this.pageTurningAnimation,
@@ -726,7 +734,8 @@ class ReaderSettingsState {
     readerDayBgColor: readerDayBgColor ?? this.readerDayBgColor,
     readerNightBgColor: readerNightBgColor ?? this.readerNightBgColor,
     readerParaIndent: readerParaIndent ?? this.readerParaIndent,
-    readerParaSpacing: readerParaSpacing ?? this.readerParaSpacing
+    readerParaSpacing: readerParaSpacing ?? this.readerParaSpacing,
+    readerBottomStatusBarHorizontalSpacing: readerBottomStatusBarHorizontalSpacing ?? this.readerBottomStatusBarHorizontalSpacing
   );
 
   ReaderSettingsState.init()
@@ -755,5 +764,6 @@ class ReaderSettingsState {
       readerDayBgColor = LocalStorageService.instance.getReaderDayBgColor(),
       readerNightBgColor = LocalStorageService.instance.getReaderNightBgColor(),
       readerParaIndent = LocalStorageService.instance.getReaderParaIndent(),
-      readerParaSpacing = LocalStorageService.instance.getReaderParaSpacing();
+      readerParaSpacing = LocalStorageService.instance.getReaderParaSpacing(),
+      readerBottomStatusBarHorizontalSpacing = LocalStorageService.instance.getReaderBottomStatusBarHorizontalSpacing();
 }

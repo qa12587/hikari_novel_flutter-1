@@ -59,7 +59,8 @@ class LocalStorageService extends GetxService {
       kReaderTtsPitch = "readerTtsPitch",
       kReaderTtsVolume = "readerTtsVolume",
       kReaderParaIndent = "readerParaIndent",
-      kReaderParaSpacing = "readerParaSpacing";
+      kReaderParaSpacing = "readerParaSpacing",
+      kReaderBottomStatusBarHorizontalSpacing = "kReaderBottomStatusBarHorizontalSpacing";
 
   Future<void> init() async {
     final Directory dir = await getApplicationSupportDirectory();
@@ -244,4 +245,8 @@ class LocalStorageService extends GetxService {
   int getReaderParaSpacing() => _reader.get(kReaderParaSpacing, defaultValue: 25);
 
   void setReaderParaSpacing(int value) => _reader.put(kReaderParaSpacing, value);
+
+  int getReaderBottomStatusBarHorizontalSpacing() => _reader.get(kReaderBottomStatusBarHorizontalSpacing, defaultValue: 25);
+
+  void setReaderBottomStatusBarHorizontalSpacing(int value) => _reader.put(kReaderParaSpacing, value);
 }

@@ -491,6 +491,20 @@ class ReaderSettingPage extends StatelessWidget {
             onChangeEnd: (value) => controller.changeBottomMargin(value),
           ),
         ),
+        Obx(
+          () => SliderTile(
+            title: "bottomStatusBarHorizontalSpacing".tr,
+            leading: const Icon(Icons.swap_horiz),
+            min: 0,
+            max: 100,
+            divisions: 100,
+            decimalPlaces: 0,
+            value: controller.readerSettingsState.value.readerBottomStatusBarHorizontalSpacing,
+            onChanged: (value) =>
+                controller.readerSettingsState.value = controller.readerSettingsState.value.copyWith(readerBottomStatusBarHorizontalSpacing: value.toInt()),
+            onChangeEnd: (value) => controller.changeReaderBottomStatusBarHorizontalSpacing(value.toInt()),
+          ),
+        ),
       ],
     );
   }

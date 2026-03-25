@@ -292,10 +292,11 @@ class AppTranslations extends Translations {
       "open_source_license": "开源许可",
       "para_indent": "首行缩进",
       "para_spacing": "段距",
+      "bottomStatusBarHorizontalSpacing": "底部状态栏文字边距",
     },
 
     "zh_TW": {
-      "exit_app_tip": "再按一次退出 App",
+      "exit_app_tip": "再按一次退出App",
       "home": "首頁",
       "bookshelf": "書架",
       "history": "歷史",
@@ -583,6 +584,7 @@ class AppTranslations extends Translations {
       "open_source_license": "開源許可",
       "para_indent": "首行縮進",
       "para_spacing": "段距",
+      "bottomStatusBarHorizontalSpacing": "底部狀態欄文字邊距",
     }
   };
 }
