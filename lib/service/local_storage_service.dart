@@ -27,8 +27,6 @@ class LocalStorageService extends GetxService {
       kIsDynamicColor = "isDynamicColor",
       kCustomColor = "customColor",
       kThemeMode = "themeMode",
-      kDefaultHomePage = "defaultHomePage",
-      kReadMode = "readMode",
       kIsRelativeTime = "isRelativeTime",
       kReaderDirection = "readerDirection",
       kReaderFontSize = "readerFontSize",
@@ -60,7 +58,7 @@ class LocalStorageService extends GetxService {
       kReaderTtsVolume = "readerTtsVolume",
       kReaderParaIndent = "readerParaIndent",
       kReaderParaSpacing = "readerParaSpacing",
-      kReaderBottomStatusBarHorizontalSpacing = "kReaderBottomStatusBarHorizontalSpacing";
+      kReaderBottomStatusBarHorizontalSpacing = "readerBottomStatusBarHorizontalSpacing";
 
   Future<void> init() async {
     final Directory dir = await getApplicationSupportDirectory();
@@ -106,7 +104,7 @@ class LocalStorageService extends GetxService {
 
   void setWenku8Node(Wenku8Node value) => _setting.put(kWenku8Node, value.index);
 
-  Wenku8Node getWenku8Node() => Wenku8Node.values[_setting.get(kWenku8Node, defaultValue: Wenku8Node.wwwWenku8Net.index)];
+  Wenku8Node getWenku8Node() => Wenku8Node.values[_setting.get(kWenku8Node, defaultValue: Wenku8Node.wwwWenku8Cc.index)];
 
   ReaderDirection getReaderDirection() => ReaderDirection.values[_reader.get(kReaderDirection, defaultValue: ReaderDirection.upToDown.index)];
 
@@ -200,9 +198,9 @@ class LocalStorageService extends GetxService {
 
   void setReaderDayBgImage(String? value) => _reader.put(kReaderDayBgImage, value);
 
-  String? getReaderNightBgImage() => _reader.get(kReaderDayBgImage, defaultValue: null);
+  String? getReaderNightBgImage() => _reader.get(kReaderNightBgImage, defaultValue: null);
 
-  void setReaderNightBgImage(String? value) => _reader.put(kReaderDayBgImage, value);
+  void setReaderNightBgImage(String? value) => _reader.put(kReaderNightBgImage, value);
 
   bool getReaderTtsEnabled() => _reader.get(kReaderTtsEnabled, defaultValue: false);
 
@@ -248,5 +246,5 @@ class LocalStorageService extends GetxService {
 
   int getReaderBottomStatusBarHorizontalSpacing() => _reader.get(kReaderBottomStatusBarHorizontalSpacing, defaultValue: 25);
 
-  void setReaderBottomStatusBarHorizontalSpacing(int value) => _reader.put(kReaderParaSpacing, value);
+  void setReaderBottomStatusBarHorizontalSpacing(int value) => _reader.put(kReaderBottomStatusBarHorizontalSpacing, value);
 }
