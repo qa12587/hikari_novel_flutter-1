@@ -1,5 +1,6 @@
 import 'package:easy_refresh/easy_refresh.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:hikari_novel_flutter/models/reader_direction.dart';
 import 'package:hikari_novel_flutter/pages/reader/controller.dart';
@@ -18,12 +19,43 @@ import '../../common/constants.dart';
 import '../../models/page_state.dart';
 import '../../router/route_path.dart';
 
-class ReaderPage extends StatelessWidget {
-  ReaderPage({super.key});
+class ReaderPage extends StatefulWidget {
+  const ReaderPage({super.key});
 
+  @override
+  State<ReaderPage> createState() => _ReaderPageState();
+}
+
+class _ReaderPageState extends State<ReaderPage> {
   final controller = Get.put(ReaderController());
 
   final GlobalKey<VerticalReadPageState> _verticalReadPageKey = GlobalKey();
+  static const MethodChannel _volumeKeyChannel = MethodChannel('hikari/reader_volume_keys');
+
+  @override
+  void initState() {
+    super.initState();
+    _volumeKeyChannel.setMethodCallHandler(_handleVolumeKey);
+    controller.changeReaderVolumeKeyPageTurning(controller.readerSettingsState.value.volumeKeyPageTurning);
+  }
+
+  Future<void> _handleVolumeKey(MethodCall call) async {
+    if (!mounted || !controller.readerSettingsState.value.volumeKeyPageTurning || controller.readerSettingsState.value.direction == ReaderDirection.upToDown) {
+      return;
+    }
+    switch (call.method) {
+      case 'volumeUp':
+        controller.prevPage();
+      case 'volumeDown':
+        controller.nextPage();
+    }
+  }
+
+  @override
+  void dispose() {
+    _volumeKeyChannel.setMethodCallHandler(null);
+    super.dispose();
+  }
 
   EdgeInsets _contentPadding(BuildContext context, {required bool inPageStatusBar}) => EdgeInsets.fromLTRB(
     controller.readerSettingsState.value.leftMargin,
